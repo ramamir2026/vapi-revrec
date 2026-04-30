@@ -1,0 +1,18 @@
+account_code,account_name,account_type,normal_balance,description
+1000,Cash,asset,debit,Operating cash account
+1100,Accounts Receivable - Trade,asset,debit,Customer invoices billed and unpaid
+1110,Allowance for Doubtful Accounts,asset,credit,Contra-AR for credit losses (ASC 326)
+1200,Contract Asset (Unbilled Receivable),asset,debit,Revenue recognized but not yet billed (ASC 606-10-45-3)
+1300,Prepaid Expenses,asset,debit,Prepaid software subscriptions and similar
+1400,Deferred Contract Costs,asset,debit,Capitalized commissions and contract acquisition costs (ASC 340-40)
+2300,Contract Liability - Current,liability,credit,Deferred revenue billed and unearned current portion (ASC 606-10-45-2)
+2310,Contract Liability - Long-term,liability,credit,Deferred revenue billed and unearned long-term portion
+2400,Refund Liability,liability,credit,Estimated refunds and SLA credits owed to customers (ASC 606-10-32-10)
+4100,Subscription Revenue,revenue,credit,Fixed platform fees recognized ratably over time
+4200,Usage Revenue - Voice Minutes,revenue,credit,Per-minute voice consumption recognized as consumed
+4300,Professional Services Revenue,revenue,credit,Implementation training and onboarding services
+4400,Setup Fees Revenue,revenue,credit,One-time setup fees recognized over the contract life when not distinct
+4900,SLA Credits and Adjustments,contra_revenue,debit,Contra-revenue for SLA breaches and customer credits
+5100,Cost of Revenue - Infrastructure,expense,debit,Cloud and telephony infrastructure costs
+5200,Cost of Revenue - Third-party Services,expense,debit,Third-party model and platform pass-through costs
+5300,Amortization of Deferred Contract Costs,expense,debit,Amortization of capitalized commissions over the period of benefit
