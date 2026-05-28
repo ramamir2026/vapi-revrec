@@ -8,6 +8,7 @@ import SYSTEM_PROMPT_BASE from "./system-prompt.ts";
 import VAPI_POLICY from "./vapi-rev-rec-policy.ts";
 
 const SYSTEM_PROMPT = `${SYSTEM_PROMPT_BASE}\n\n---\n\n# Reference: Vapi Revenue Recognition Policy (\`_reference/vapi-rev-rec-policy.md\`)\n\n${VAPI_POLICY}`;
+const MODEL = "claude-sonnet-4-5";
 const THINKING_BUDGET = 4000;
 
 function jsonResp(body: unknown, status = 200) {
