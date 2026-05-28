@@ -3,7 +3,9 @@ import { extractJsonObject, extractTextFromAnthropicResponse } from "../_shared/
 import { requireVapiUser, serviceClient } from "../_shared/auth.ts";
 import { callAnthropic, ConfigError, UpstreamError } from "../_shared/anthropic.ts";
 
-const SYSTEM_PROMPT = await Deno.readTextFile(new URL("./system-prompt.md", import.meta.url));
+const SYSTEM_PROMPT_BASE = await Deno.readTextFile(new URL("./system-prompt.md", import.meta.url));
+const VAPI_POLICY = await Deno.readTextFile(new URL("./vapi-rev-rec-policy.md", import.meta.url));
+const SYSTEM_PROMPT = `${SYSTEM_PROMPT_BASE}\n\n---\n\n# Reference: Vapi Revenue Recognition Policy (\`_reference/vapi-rev-rec-policy.md\`)\n\n${VAPI_POLICY}`;
 const MODEL = "claude-sonnet-4-5";
 const THINKING_BUDGET = 3000;
 
@@ -59,6 +61,62 @@ Deno.serve(async (req) => {
     );
   }
 
+  // Self Serve guard — this agent only handles Enterprise streams (straight_line + consumption).
+  const cashPo = (pos ?? []).find((p: any) => p.treatment_basis === "cash");
+  if (cashPo) {
+    await supa.from("audit_log").insert({
+      event_type: "monthly_close_run",
+      customer_pk: contract.customer_pk,
+      contract_id: body.contract_id,
+      user_id: user.id,
+      action_summary: `Refused close: cash-basis PO present (${cashPo.po_name}). Self Serve is out of scope.`,
+      judgment_call: false,
+      metadata: { period: `${body.period_year}-${body.period_month}`, refusal: "cash_basis_out_of_scope", po_id: cashPo.id },
+    });
+    return jsonResp(
+      { error: "cash_basis_out_of_scope", message: "This contract contains a cash-basis (Self Serve) performance obligation. Self Serve recognition is handled in a separate Phase 2 workflow." },
+      422
+    );
+  }
+
+  // Server-side expected recognition per PO based on treatment_basis.
+  // straight_line: transaction_price_allocated / contract_months
+  // consumption: sum(actual_units × rate) from usage data (best-effort; Claude refines)
+  const contractMonths = Math.max(
+    1,
+    contract.term_months ??
+      (() => {
+        const s = new Date(contract.effective_date);
+        const e = new Date(contract.end_date);
+        return (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth());
+      })()
+  );
+  const usageRows: any[] = Array.isArray(usageRow.raw_data_json)
+    ? usageRow.raw_data_json
+    : Array.isArray((usageRow.raw_data_json as any)?.rows)
+      ? (usageRow.raw_data_json as any).rows
+      : [];
+  const expectedPerPo = (pos ?? []).map((p: any) => {
+    if (p.treatment_basis === "straight_line") {
+      const amount = Number(p.transaction_price_allocated ?? 0) / contractMonths;
+      return { po_id: p.id, po_name: p.po_name, treatment_basis: "straight_line", expected_amount: Number(amount.toFixed(2)), basis: `${p.transaction_price_allocated} / ${contractMonths}` };
+    }
+    if (p.treatment_basis === "consumption") {
+      let units = 0;
+      let rate = 0;
+      for (const r of usageRows) {
+        const u = Number(r.units ?? r.quantity ?? r.minutes ?? 0);
+        const rt = Number(r.rate ?? r.unit_price ?? 0);
+        units += isFinite(u) ? u : 0;
+        if (isFinite(rt) && rt > 0) rate = rt;
+      }
+      const amount = units * rate;
+      return { po_id: p.id, po_name: p.po_name, treatment_basis: "consumption", expected_amount: Number(amount.toFixed(2)), basis: `${units} units × ${rate}` };
+    }
+    return { po_id: p.id, po_name: p.po_name, treatment_basis: p.treatment_basis ?? null, expected_amount: null, basis: "unknown_treatment_basis" };
+  });
+
+
   const userMessage = `Workflow: Monthly Close.
 
 Customer ID: ${contract.customers.customer_id}
@@ -91,6 +149,9 @@ ${JSON.stringify(prior ?? [], null, 2)}
 
 Raw usage data for this period:
 ${JSON.stringify(usageRow.raw_data_json, null, 2)}
+
+Server-side expected recognition per PO (computed from treatment_basis; use as the authoritative anchor, refine breakdown/JE as needed and explain any divergence):
+${JSON.stringify(expectedPerPo, null, 2)}
 
 Produce structured JSON output with keys: workflow, period, customer_id, usage_summary, recognized_amount_usd, recognized_breakdown[], variance_vs_forecast, monthly_je (with je_number_suggested, memo, lines[]), ndr_signals[], judgment_calls[], monthly_memo_markdown.`;
 
@@ -200,7 +261,7 @@ Produce structured JSON output with keys: workflow, period, customer_id, usage_s
     claude_model: MODEL,
     claude_input_tokens: response.usage.input_tokens,
     claude_output_tokens: response.usage.output_tokens,
-    metadata: { period: `${body.period_year}-${body.period_month}` },
+    metadata: { period: `${body.period_year}-${body.period_month}`, expected_per_po: expectedPerPo },
   });
 
   const jcs = Array.isArray(structured.judgment_calls) ? structured.judgment_calls : [];
@@ -214,6 +275,7 @@ Produce structured JSON output with keys: workflow, period, customer_id, usage_s
       decision_made: jc.decision ?? null,
       alternative_considered: jc.alternative ?? null,
       asc606_citation: jc.asc606_citation ?? null,
+      policy_citation: jc.policy_citation ?? null,
       judgment_call: true,
       full_reasoning_text: fullReasoning,
       claude_model: MODEL,
@@ -221,5 +283,5 @@ Produce structured JSON output with keys: workflow, period, customer_id, usage_s
     });
   }
 
-  return jsonResp({ status: "ok", structured });
+  return jsonResp({ status: "ok", structured, expected_per_po: expectedPerPo });
 });
