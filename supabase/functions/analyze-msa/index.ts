@@ -207,6 +207,12 @@ Routine decisions should NOT be in judgment_calls but should be reflected in ana
         recognition_basis: po.recognition_basis ?? null,
         asc606_citation: po.asc606_citation ?? null,
         variable_consideration_treatment: po.variable_consideration_treatment ?? null,
+        stream_classification: po.stream_classification ?? null,
+        treatment_basis: po.treatment_basis ?? null,
+        is_interim: !!po.is_interim,
+        intended_end_state_treatment: po.intended_end_state_treatment ?? null,
+        policy_citation: po.policy_citation ?? null,
+        billing_type: po.billing_type ?? null,
       }).select().single();
       if (inserted) poRows.push(inserted);
     }
@@ -217,7 +223,6 @@ Routine decisions should NOT be in judgment_calls but should be reflected in ana
       await supa.from("revenue_schedule").delete().eq("contract_id", body.contract_id).eq("status", "forecast");
       const defaultPo = poRows[0];
       for (const row of sched) {
-        // best-effort match by po_name; fall back to first PO
         const match = poRows.find((p) => p.po_name === row.performance_obligation) ?? defaultPo;
         await supa.from("revenue_schedule").insert({
           contract_id: body.contract_id,
@@ -226,6 +231,8 @@ Routine decisions should NOT be in judgment_calls but should be reflected in ana
           forecast_amount: row.forecast_amount_usd ?? 0,
           forecast_basis: row.forecast_basis ?? row.notes ?? null,
           status: "forecast",
+          treatment_basis: row.treatment_basis ?? match.treatment_basis ?? null,
+          is_interim_recognition: row.is_interim_recognition ?? !!match.is_interim,
         });
       }
     }
