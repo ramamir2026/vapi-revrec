@@ -283,5 +283,5 @@ Produce structured JSON output with keys: workflow, period, customer_id, usage_s
     });
   }
 
-  return jsonResp({ status: "ok", structured });
+  return jsonResp({ status: "ok", structured, expected_per_po: expectedPerPo });
 });
