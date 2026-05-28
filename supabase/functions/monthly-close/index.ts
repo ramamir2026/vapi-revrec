@@ -261,7 +261,7 @@ Produce structured JSON output with keys: workflow, period, customer_id, usage_s
     claude_model: MODEL,
     claude_input_tokens: response.usage.input_tokens,
     claude_output_tokens: response.usage.output_tokens,
-    metadata: { period: `${body.period_year}-${body.period_month}` },
+    metadata: { period: `${body.period_year}-${body.period_month}`, expected_per_po: expectedPerPo },
   });
 
   const jcs = Array.isArray(structured.judgment_calls) ? structured.judgment_calls : [];
