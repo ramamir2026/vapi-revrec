@@ -31,6 +31,7 @@ export type Database = {
           je_id: string | null
           judgment_call: boolean
           metadata: Json | null
+          policy_citation: string | null
           timestamp: string
           user_id: string | null
         }
@@ -50,6 +51,7 @@ export type Database = {
           je_id?: string | null
           judgment_call?: boolean
           metadata?: Json | null
+          policy_citation?: string | null
           timestamp?: string
           user_id?: string | null
         }
@@ -69,6 +71,7 @@ export type Database = {
           je_id?: string | null
           judgment_call?: boolean
           metadata?: Json | null
+          policy_citation?: string | null
           timestamp?: string
           user_id?: string | null
         }
@@ -445,44 +448,62 @@ export type Database = {
       performance_obligations: {
         Row: {
           asc606_citation: string | null
+          billing_type: string | null
           contract_id: string
           created_at: string
           description: string | null
           id: string
+          intended_end_state_treatment: string | null
           is_distinct: boolean
+          is_interim: boolean
           is_series: boolean
           po_name: string
+          policy_citation: string | null
           recognition_basis: string | null
           recognition_pattern: string
+          stream_classification: string | null
           transaction_price_allocated: number | null
+          treatment_basis: string | null
           variable_consideration_treatment: string | null
         }
         Insert: {
           asc606_citation?: string | null
+          billing_type?: string | null
           contract_id: string
           created_at?: string
           description?: string | null
           id?: string
+          intended_end_state_treatment?: string | null
           is_distinct: boolean
+          is_interim?: boolean
           is_series?: boolean
           po_name: string
+          policy_citation?: string | null
           recognition_basis?: string | null
           recognition_pattern: string
+          stream_classification?: string | null
           transaction_price_allocated?: number | null
+          treatment_basis?: string | null
           variable_consideration_treatment?: string | null
         }
         Update: {
           asc606_citation?: string | null
+          billing_type?: string | null
           contract_id?: string
           created_at?: string
           description?: string | null
           id?: string
+          intended_end_state_treatment?: string | null
           is_distinct?: boolean
+          is_interim?: boolean
           is_series?: boolean
           po_name?: string
+          policy_citation?: string | null
           recognition_basis?: string | null
           recognition_pattern?: string
+          stream_classification?: string | null
           transaction_price_allocated?: number | null
+          treatment_basis?: string | null
           variable_consideration_treatment?: string | null
         }
         Relationships: [
@@ -498,10 +519,14 @@ export type Database = {
       revenue_schedule: {
         Row: {
           actual_amount: number | null
+          actual_consumption_rate: number | null
+          actual_consumption_unit_label: string | null
+          actual_consumption_units: number | null
           contract_id: string
           forecast_amount: number
           forecast_basis: string | null
           id: string
+          is_interim_recognition: boolean
           je_id: string | null
           performance_obligation_id: string
           period: string
@@ -510,14 +535,19 @@ export type Database = {
           posted_at: string | null
           posted_by: string | null
           status: string
+          treatment_basis: string | null
           variance_amount: number | null
         }
         Insert: {
           actual_amount?: number | null
+          actual_consumption_rate?: number | null
+          actual_consumption_unit_label?: string | null
+          actual_consumption_units?: number | null
           contract_id: string
           forecast_amount?: number
           forecast_basis?: string | null
           id?: string
+          is_interim_recognition?: boolean
           je_id?: string | null
           performance_obligation_id: string
           period: string
@@ -526,14 +556,19 @@ export type Database = {
           posted_at?: string | null
           posted_by?: string | null
           status?: string
+          treatment_basis?: string | null
           variance_amount?: number | null
         }
         Update: {
           actual_amount?: number | null
+          actual_consumption_rate?: number | null
+          actual_consumption_unit_label?: string | null
+          actual_consumption_units?: number | null
           contract_id?: string
           forecast_amount?: number
           forecast_basis?: string | null
           id?: string
+          is_interim_recognition?: boolean
           je_id?: string | null
           performance_obligation_id?: string
           period?: string
@@ -542,6 +577,7 @@ export type Database = {
           posted_at?: string | null
           posted_by?: string | null
           status?: string
+          treatment_basis?: string | null
           variance_amount?: number | null
         }
         Relationships: [
