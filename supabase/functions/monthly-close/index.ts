@@ -52,6 +52,8 @@ Deno.serve(async (req) => {
       .eq("period_year", body.period_year)
       .eq("period_month", body.period_month)
       .maybeSingle(),
+  ]);
+
   if (!usageRow) {
     return jsonResp(
       { error: "usage_not_uploaded", message: "Upload the usage CSV for this period first." },
