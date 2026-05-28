@@ -150,6 +150,9 @@ ${JSON.stringify(prior ?? [], null, 2)}
 Raw usage data for this period:
 ${JSON.stringify(usageRow.raw_data_json, null, 2)}
 
+Server-side expected recognition per PO (computed from treatment_basis; use as the authoritative anchor, refine breakdown/JE as needed and explain any divergence):
+${JSON.stringify(expectedPerPo, null, 2)}
+
 Produce structured JSON output with keys: workflow, period, customer_id, usage_summary, recognized_amount_usd, recognized_breakdown[], variance_vs_forecast, monthly_je (with je_number_suggested, memo, lines[]), ndr_signals[], judgment_calls[], monthly_memo_markdown.`;
 
   let response;
