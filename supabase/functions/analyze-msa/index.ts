@@ -5,7 +5,9 @@ import { extractJsonObject, extractTextFromAnthropicResponse } from "../_shared/
 import { requireVapiUser, serviceClient } from "../_shared/auth.ts";
 import { callAnthropic, ConfigError, UpstreamError } from "../_shared/anthropic.ts";
 
-const SYSTEM_PROMPT = await Deno.readTextFile(new URL("./system-prompt.md", import.meta.url));
+const SYSTEM_PROMPT_BASE = await Deno.readTextFile(new URL("./system-prompt.md", import.meta.url));
+const VAPI_POLICY = await Deno.readTextFile(new URL("./vapi-rev-rec-policy.md", import.meta.url));
+const SYSTEM_PROMPT = `${SYSTEM_PROMPT_BASE}\n\n---\n\n# Reference: Vapi Revenue Recognition Policy (\`_reference/vapi-rev-rec-policy.md\`)\n\n${VAPI_POLICY}`;
 const MODEL = "claude-sonnet-4-5"; // claude-sonnet-4-6 alias not yet GA; use latest 4.x
 const THINKING_BUDGET = 4000;
 
