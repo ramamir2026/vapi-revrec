@@ -1,7 +1,1 @@
 project_id = "fsenciuwpqxmlxhlhtyr"
-
-[functions.analyze-msa]
-static_files = [ "./functions/analyze-msa/system-prompt.md", "./functions/analyze-msa/vapi-rev-rec-policy.md" ]
-
-[functions.monthly-close]
-static_files = [ "./functions/monthly-close/system-prompt.md", "./functions/monthly-close/vapi-rev-rec-policy.md" ]
