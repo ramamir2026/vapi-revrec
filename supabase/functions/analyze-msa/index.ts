@@ -278,6 +278,7 @@ Routine decisions should NOT be in judgment_calls but should be reflected in ana
       decision_made: jc.decision ?? null,
       alternative_considered: jc.alternative ?? null,
       asc606_citation: jc.asc606_citation ?? null,
+      policy_citation: jc.policy_citation ?? null,
       judgment_call: true,
       full_reasoning_text: fullReasoning,
       claude_model: MODEL,
