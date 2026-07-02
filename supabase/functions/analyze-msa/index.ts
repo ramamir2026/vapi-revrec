@@ -42,6 +42,27 @@ Deno.serve(async (req) => {
     .single();
   if (contractErr || !contract) return jsonResp({ error: "contract_not_found" }, 404);
 
+  // Guard: refuse to re-run analysis if any posted (non-forecast) actuals reference this contract.
+  // Checked BEFORE the Anthropic call so we don't pay for an analysis we then reject.
+  {
+    const { data: posted } = await supa
+      .from("revenue_schedule")
+      .select("id")
+      .eq("contract_id", body.contract_id)
+      .neq("status", "forecast")
+      .limit(1);
+    if (posted?.length) {
+      return jsonResp(
+        {
+          error: "posted_actuals_exist",
+          message: "Cannot re-run analysis: posted actual revenue rows reference existing performance obligations. Reverse the postings first.",
+        },
+        200
+      );
+    }
+  }
+
+
   // Download MSA PDF and extract text
   let msaText = "";
   try {
@@ -191,8 +212,10 @@ Routine decisions should NOT be in judgment_calls but should be reflected in ana
       ramp_terms_json: cs.ramp_terms ?? null,
     }).eq("id", body.contract_id);
 
-    // Insert performance obligations (replace any existing for this contract)
+    // Delete revenue_schedule forecast rows FIRST (FK → performance_obligations), then POs.
+    await supa.from("revenue_schedule").delete().eq("contract_id", body.contract_id).eq("status", "forecast");
     await supa.from("performance_obligations").delete().eq("contract_id", body.contract_id);
+
     const pos = Array.isArray(structured.performance_obligations) ? structured.performance_obligations : [];
     const poRows: any[] = [];
     for (const po of pos) {
@@ -220,7 +243,6 @@ Routine decisions should NOT be in judgment_calls but should be reflected in ana
     // Insert revenue schedule (forecast)
     const sched = Array.isArray(structured.revenue_schedule) ? structured.revenue_schedule : [];
     if (poRows.length > 0) {
-      await supa.from("revenue_schedule").delete().eq("contract_id", body.contract_id).eq("status", "forecast");
       const defaultPo = poRows[0];
       for (const row of sched) {
         const match = poRows.find((p) => p.po_name === row.performance_obligation) ?? defaultPo;
@@ -237,19 +259,21 @@ Routine decisions should NOT be in judgment_calls but should be reflected in ana
       }
     }
   } catch (e) {
-    // Persistence failure shouldn't lose the analysis — log and return structured anyway
+    // Persistence failure — log and return a 200 with an error field so the client can react.
     await supa.from("audit_log").insert({
       event_type: "analysis_run",
       customer_pk: contract.customer_pk,
       contract_id: body.contract_id,
       user_id: user.id,
-      action_summary: `Analysis persisted partially: ${(e as Error).message}`,
+      action_summary: `Analysis persist failed: ${(e as Error).message}`,
       judgment_call: false,
       full_reasoning_text: fullReasoning,
       claude_model: MODEL,
       metadata: { workflow: mode, persist_error: (e as Error).message },
     });
+    return jsonResp({ error: "persist_failed", structured }, 200);
   }
+
 
   // Audit: overall analysis run (always full reasoning per spec)
   await supa.from("audit_log").insert({

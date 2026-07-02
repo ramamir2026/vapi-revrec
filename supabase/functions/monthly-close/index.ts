@@ -88,6 +88,7 @@ Deno.serve(async (req) => {
       (() => {
         const s = new Date(contract.effective_date);
         const e = new Date(contract.end_date);
+        e.setDate(e.getDate() + 1); // end_date is inclusive
         return (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth());
       })()
   );
@@ -102,19 +103,27 @@ Deno.serve(async (req) => {
       return { po_id: p.id, po_name: p.po_name, treatment_basis: "straight_line", expected_amount: Number(amount.toFixed(2)), basis: `${p.transaction_price_allocated} / ${contractMonths}` };
     }
     if (p.treatment_basis === "consumption") {
-      let units = 0;
-      let rate = 0;
+      let amount = 0;
+      let missingRateRows = 0;
+      let usedRows = 0;
       for (const r of usageRows) {
         const u = Number(r.units ?? r.quantity ?? r.minutes ?? 0);
         const rt = Number(r.rate ?? r.unit_price ?? 0);
-        units += isFinite(u) ? u : 0;
-        if (isFinite(rt) && rt > 0) rate = rt;
+        if (isFinite(u) && u > 0) {
+          if (isFinite(rt) && rt > 0) {
+            amount += u * rt;
+            usedRows++;
+          } else {
+            missingRateRows++;
+          }
+        }
       }
-      const amount = units * rate;
-      return { po_id: p.id, po_name: p.po_name, treatment_basis: "consumption", expected_amount: Number(amount.toFixed(2)), basis: `${units} units × ${rate}` };
+      const basis = `sum(units × rate) across ${usedRows} rows${missingRateRows > 0 ? `; ${missingRateRows} rows missing rate` : ""}`;
+      return { po_id: p.id, po_name: p.po_name, treatment_basis: "consumption", expected_amount: Number(amount.toFixed(2)), basis };
     }
     return { po_id: p.id, po_name: p.po_name, treatment_basis: p.treatment_basis ?? null, expected_amount: null, basis: "unknown_treatment_basis" };
   });
+
 
 
   const userMessage = `Workflow: Monthly Close.

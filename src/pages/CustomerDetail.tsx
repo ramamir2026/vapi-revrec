@@ -36,6 +36,15 @@ export default function CustomerDetail() {
       toast.error("ANTHROPIC_API_KEY not configured. Add it in backend secrets.");
       return;
     }
+    if (data?.error === "posted_actuals_exist") {
+      toast.error(data.message ?? "Posted actuals block re-analysis.");
+      return;
+    }
+    if (data?.error === "persist_failed") {
+      toast.error("Analysis completed but failed to save. See audit log.");
+      return;
+    }
+
     if (data?.status === "needs_clarification") {
       toast.warning("Analysis needs clarification. See audit log.");
       return;
